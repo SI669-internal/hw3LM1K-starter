@@ -1,21 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Overlay, Icon, Input } from '@rneui/themed';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, query,
+  doc, getDocs, updateDoc, addDoc, deleteDoc
+} from "firebase/firestore";
+import { firebaseConfig } from './Secrets';
+
+console.log(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 function ListMaker1000Final () {
 
-  // INITIAL VALUES FOR TESTING
-  const initTodos = [
-    { text: 'Get milk', key: 1},
-    { text: 'Drop off dry cleaning', key: 2},
-    { text: 'Finish 669 homework', key: 3}
-  ];
-
   // STATE VARIABLES AND THEIR UPDATERS
-  const [todos, setTodos] = useState(initTodos);
+  const [todos, setTodos] = useState([]);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [inputText, setInputText] = useState('');
   const [selectedItem, setSelectedItem] = useState('');
+
+  async function loadInitList() {
+    const initList = [];
+    const collRef = collection(db, 'todos');
+    const q = query(collRef);
+    const querySnapshot = await getDocs(q);
+    querySnapshot.docs.forEach((docSnapshot)=>{
+      let todo = docSnapshot.data();
+      console.log(todo);
+      todo.key = docSnapshot.id;
+      initList.push(todo);
+    });
+    setTodos(initList);
+  }
+
+  useEffect(()=>{
+    loadInitList();
+  }, []);
 
   // DATA MODEL FUNCTIONS (CRUD)
   const createTodo = (todoText) => {
@@ -27,12 +47,21 @@ function ListMaker1000Final () {
     setTodos(todos);
   }
 
-  const updateTodo = (todo, newText) => { 
-    todo.text = newText;
-    setTodos(todos);
+  const updateTodo = async (todo, newText) => { 
+    let docToUpdate = doc(db, 'todos', todo.key);
+    await updateDoc(docToUpdate, {
+      text: newText
+    });
+
+    let newTodo = {...todo, text: newText};
+    let newTodos = todos.map(elem=>elem.key===todo.key?newTodo: elem);
+    setTodos(newTodos);
   }
 
-  const deleteTodo = (todo) => {    
+  const deleteTodo = async (todo) => {    
+    let docToDelete = doc(db, 'todos', todo.key);
+    await deleteDoc(docToDelete);
+
     let newTodos = todos.filter((item)=>item.key != todo.key);
     setTodos(newTodos);
   }
@@ -205,8 +234,4 @@ const styles = StyleSheet.create({
   }
 });
 
-//export default ListMaker1000Start;
-// export default ListMaker1000Create;
-// export default ListMaker1000Delete;
 export default ListMaker1000Final;
-//export default ContextDemo;
