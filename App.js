@@ -38,13 +38,14 @@ function ListMaker1000Final () {
   }, []);
 
   // DATA MODEL FUNCTIONS (CRUD)
-  const createTodo = (todoText) => {
+  const createTodo = async (todoText) => {
     let newTodo = {
       text: todoText,
-      key: Date.now()
     }
-    todos.push(newTodo);
-    setTodos(todos);
+    let todoCollRef = collection(db, 'todos');
+    let todoSnap = await addDoc(todoCollRef, newTodo);  
+    newTodo.key = todoSnap.id;
+    setTodos(todos.concat(newTodo));
   }
 
   const updateTodo = async (todo, newText) => { 
